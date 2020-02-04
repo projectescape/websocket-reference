@@ -4,20 +4,27 @@ const socketio = require("socket.io");
 
 let namespaces = require("./data/namespaces");
 
-namespaces.forEach(namespace => {
-  console.log(namespace);
-});
-
 app.use(express.static(__dirname + "/public"));
 
 const expressServer = app.listen(9000);
 const io = socketio(expressServer);
+
+// Main namespace
 io.on("connection", socket => {
-  socket.emit("messageFromServer", { data: "Welcome to Socket.io" });
-  socket.on("messageToServer", dataFromClient => {
-    console.log(dataFromClient);
+  let nsData = namespaces.map(ns => {
+    return {
+      img: ns.img,
+      endpoint: ns.endpoint
+    };
   });
-  socket.on("newMessageToServer", msg => {
-    io.emit("messageToClients", { text: msg.text });
+  // console.log(nsData);
+  socket.emit("nsList", nsData);
+});
+
+// Other namespaces
+namespaces.forEach(namespace => {
+  io.of(namespace.endpoint).on("connection", nsSocket => {
+    console.log(`${nsSocket.id} has join ${namespace.endpoint}`);
+    nsSocket.emit("nsRoomLoad", namespaces[0].rooms);
   });
 });
